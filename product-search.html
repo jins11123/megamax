@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>상품 검색</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #ffffff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 20px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin: 0 0 18px;
+      font-size: 14px;
+    }
+    .search-row {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      gap: 8px;
+    }
+    .search-row input {
+      flex: 1;
+      height: 48px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 0 14px;
+      font-size: 16px;
+      outline: none;
+    }
+    .search-row input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .search-row button,
+    .admin-btn,
+    .action-btn,
+    .logout-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .search-row button { background: #2563eb; color: #fff; min-width: 92px; }
+    .container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+    .admin-btn { height: 42px; background: #111827; color: white; }
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      border: 1px solid #eef2f7;
+      margin-bottom: 14px;
+    }
+    .product-name { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .location { color: #374151; font-size: 15px; }
+    .muted { color: #6b7280; font-size: 14px; }
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: #6b7280;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(17,24,39,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal.show { display: flex; }
+    .modal-box {
+      width: 100%;
+      max-width: 760px;
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      max-height: 90vh;
+      overflow: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .close-btn {
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .form-grid.single { grid-template-columns: 1fr; }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #374151;
+      font-weight: 700;
+    }
+    .field input, .field select {
+      width: 100%;
+      height: 44px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 0 12px;
+      font-size: 15px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .action-btn { height: 42px; background: #2563eb; color: #fff; }
+    .action-btn.secondary { background: #10b981; }
+    .action-btn.danger { background: #dc2626; }
+    .logout-btn { height: 42px; background: #6b7280; color: white; }
+    .admin-section {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 18px;
+      padding-top: 18px;
+    }
+    .admin-list {
+      margin-top: 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+    }
+    th { background: #f8fafc; }
+    .notice {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .notice.ok { background: #ecfdf5; color: #065f46; }
+    .notice.error { background: #fef2f2; color: #991b1b; }
+    @media (max-width: 640px) {
+      .search-row { flex-direction: column; }
+      .search-row button { height: 46px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .title { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1 class="title">어떤 제품을 찾고 계신가요?</h1>
+      <p class="subtitle">상품명을 입력해주세요.</p>
+      <div class="search-row">
+        <input id="searchInput" type="text" placeholder="예: 밀크씨슬, 오메가3, 비타민" />
+        <button id="searchBtn">검색</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="toolbar">
+        <button class="admin-btn" id="openAdminBtn">관리자</button>
+      </div>
+
+      <div id="resultMeta" class="muted"></div>
+      <div id="resultList"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="adminModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="adminTitle">관리자 로그인</h2>
+        <button class="close-btn" id="closeAdminBtn">×</button>
+      </div>
+
+      <div id="loginView">
+        <div class="form-grid single">
+          <div class="field">
+            <label for="adminPassword">비밀번호</label>
+            <input id="adminPassword" type="password" placeholder="관리자 비밀번호 입력" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="action-btn" id="loginBtn">로그인</button>
+        </div>
+        <div id="loginNotice"></div>
+      </div>
+
+      <div id="adminView" style="display:none;">
+        <div class="actions" style="justify-content: space-between; margin-bottom: 12px;">
+          <div class="muted">관리자만 품목 추가/수정/삭제 가능</div>
+          <button class="logout-btn" id="logoutBtn">로그아웃</button>
+        </div>
+
+        <div class="admin-section" style="border-top:none; margin-top:0; padding-top:0;">
+          <h3>품목 추가</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="addName">품목명</label>
+              <input id="addName" type="text" placeholder="품목명 입력" />
+            </div>
+            <div class="field">
+              <label for="addLocation">위치</label>
+              <input id="addLocation" type="text" placeholder="위치 입력" />
+            </div>
+          </div>
+          <div class="actions">
+            <button class="action-btn secondary" id="addBtn">추가</button>
+          </div>
+        </div>
+
+        <div class="admin-section">
+          <h3>품목 수정</h3>
+          <div class="form-grid single">
+            <div class="field">
+              <label for="editSelect">수정할 품목 선택</label>
+              <select id="editSelect"></select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="editName">새 품목명</label>
+              <input id="editName" type="text" />
+            </div>
+            <div class="field">
+              <label for="editLocation">새 위치</label>
+              <input id="editLocation" type="text" />
+            </div>
+          </div>
+          <div class="actions">
+            <button class="action-btn" id="updateBtn">수정 저장</button>
+          </div>
+        </div>
+
+        <div class="admin-section">
+          <h3>품목 삭제</h3>
+          <div class="form-grid single">
+            <div class="field">
+              <label for="deleteSelect">삭제할 품목 선택</label>
+              <select id="deleteSelect"></select>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="action-btn danger" id="deleteBtn">선택 품목 삭제</button>
+          </div>
+        </div>
+
+        <div id="adminNotice"></div>
+
+        <div class="admin-section">
+          <h3>현재 등록 목록</h3>
+          <div class="admin-list">
+            <table>
+              <thead>
+                <tr>
+                  <th>품목명</th>
+                  <th>위치</th>
+                </tr>
+              </thead>
+              <tbody id="adminTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = "1234";
+    const STORAGE_KEY = "megafactory_items_v1";
+
+    const defaultItems = [
+      { name: "밀크씨슬120C", location: "D1진열대 3번째 칸" },
+      { name: "오메가3골드", location: "B2진열대 1번째 칸" },
+      { name: "비타민D5000IU", location: "A3진열대 2번째 칸" },
+      { name: "루테인플러스", location: "C1진열대 4번째 칸" }
+    ];
+
+    function loadItems() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultItems));
+        return [...defaultItems];
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [...defaultItems];
+      } catch {
+        return [...defaultItems];
+      }
+    }
+
+    function saveItems(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    let items = loadItems();
+    let adminLoggedIn = false;
+
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const resultMeta = document.getElementById("resultMeta");
+    const resultList = document.getElementById("resultList");
+
+    const adminModal = document.getElementById("adminModal");
+    const openAdminBtn = document.getElementById("openAdminBtn");
+    const closeAdminBtn = document.getElementById("closeAdminBtn");
+    const loginView = document.getElementById("loginView");
+    const adminView = document.getElementById("adminView");
+    const adminTitle = document.getElementById("adminTitle");
+    const adminPassword = document.getElementById("adminPassword");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const loginNotice = document.getElementById("loginNotice");
+    const adminNotice = document.getElementById("adminNotice");
+
+    const addName = document.getElementById("addName");
+    const addLocation = document.getElementById("addLocation");
+    const addBtn = document.getElementById("addBtn");
+    const editSelect = document.getElementById("editSelect");
+    const editName = document.getElementById("editName");
+    const editLocation = document.getElementById("editLocation");
+    const updateBtn = document.getElementById("updateBtn");
+    const deleteSelect = document.getElementById("deleteSelect");
+    const deleteBtn = document.getElementById("deleteBtn");
+    const adminTableBody = document.getElementById("adminTableBody");
+
+    function showNotice(target, message, type) {
+      target.innerHTML = `<div class="notice ${type}">${message}</div>`;
+    }
+
+    function clearNotice(target) {
+      target.innerHTML = "";
+    }
+
+    function renderResults(keyword = "") {
+      const q = keyword.trim().toLowerCase();
+      const filtered = q
+        ? items.filter(item => item.name.toLowerCase().includes(q))
+        : [];
+
+      if (!q) {
+        resultMeta.textContent = "검색어를 입력하면 결과가 표시됩니다.";
+        resultList.innerHTML = `<div class="card empty">상품명을 입력해주세요.</div>`;
+        return;
+      }
+
+      resultMeta.textContent = `검색 결과 ${filtered.length}건`;
+
+      if (!filtered.length) {
+        resultList.innerHTML = `<div class="card empty">검색 결과가 없습니다.</div>`;
+        return;
+      }
+
+      resultList.innerHTML = filtered.map(item => `
+        <div class="card">
+          <div class="product-name">상품명 : ${escapeHtml(item.name)}</div>
+          <div class="location">위치 : ${escapeHtml(item.location)}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderAdmin() {
+      const optionsHtml = items.map((item, index) =>
+        `<option value="${index}">${escapeHtml(item.name)} | ${escapeHtml(item.location)}</option>`
+      ).join("");
+
+      editSelect.innerHTML = optionsHtml;
+      deleteSelect.innerHTML = optionsHtml;
+
+      if (items.length > 0) {
+        editName.value = items[0].name;
+        editLocation.value = items[0].location;
+      } else {
+        editName.value = "";
+        editLocation.value = "";
+      }
+
+      adminTableBody.innerHTML = items.length
+        ? items.map(item => `
+            <tr>
+              <td>${escapeHtml(item.name)}</td>
+              <td>${escapeHtml(item.location)}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="2" class="muted">등록된 품목이 없습니다.</td></tr>`;
+    }
+
+    function syncEditFields() {
+      const idx = Number(editSelect.value);
+      if (Number.isNaN(idx) || !items[idx]) return;
+      editName.value = items[idx].name;
+      editLocation.value = items[idx].location;
+    }
+
+    function openAdminModal() {
+      adminModal.classList.add("show");
+      updateAdminView();
+    }
+
+    function closeAdminModal() {
+      adminModal.classList.remove("show");
+      clearNotice(loginNotice);
+      clearNotice(adminNotice);
+    }
+
+    function updateAdminView() {
+      if (adminLoggedIn) {
+        adminTitle.textContent = "관리자 페이지";
+        loginView.style.display = "none";
+        adminView.style.display = "block";
+        renderAdmin();
+      } else {
+        adminTitle.textContent = "관리자 로그인";
+        loginView.style.display = "block";
+        adminView.style.display = "none";
+        adminPassword.value = "";
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    searchBtn.addEventListener("click", () => renderResults(searchInput.value));
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") renderResults(searchInput.value);
+    });
+
+    openAdminBtn.addEventListener("click", openAdminModal);
+    closeAdminBtn.addEventListener("click", closeAdminModal);
+    adminModal.addEventListener("click", (e) => {
+      if (e.target === adminModal) closeAdminModal();
+    });
+
+    loginBtn.addEventListener("click", () => {
+      if (adminPassword.value === ADMIN_PASSWORD) {
+        adminLoggedIn = true;
+        clearNotice(loginNotice);
+        updateAdminView();
+      } else {
+        showNotice(loginNotice, "비밀번호가 틀렸습니다.", "error");
+      }
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      adminLoggedIn = false;
+      updateAdminView();
+    });
+
+    addBtn.addEventListener("click", () => {
+      const name = addName.value.trim();
+      const location = addLocation.value.trim();
+      if (!name || !location) {
+        showNotice(adminNotice, "품목명과 위치를 모두 입력해주세요.", "error");
+        return;
+      }
+      const exists = items.some(item => item.name === name && item.location === location);
+      if (exists) {
+        showNotice(adminNotice, "동일한 품목명과 위치가 이미 등록되어 있습니다.", "error");
+        return;
+      }
+      items.push({ name, location });
+      saveItems(items);
+      addName.value = "";
+      addLocation.value = "";
+      renderAdmin();
+      renderResults(searchInput.value);
+      showNotice(adminNotice, "품목이 추가되었습니다.", "ok");
+    });
+
+    editSelect.addEventListener("change", syncEditFields);
+
+    updateBtn.addEventListener("click", () => {
+      const idx = Number(editSelect.value);
+      if (Number.isNaN(idx) || !items[idx]) {
+        showNotice(adminNotice, "수정할 품목을 선택해주세요.", "error");
+        return;
+      }
+      const name = editName.value.trim();
+      const location = editLocation.value.trim();
+      if (!name || !location) {
+        showNotice(adminNotice, "새 품목명과 새 위치를 모두 입력해주세요.", "error");
+        return;
+      }
+      items[idx] = { name, location };
+      saveItems(items);
+      renderAdmin();
+      renderResults(searchInput.value);
+      showNotice(adminNotice, "품목이 수정되었습니다.", "ok");
+    });
+
+    deleteBtn.addEventListener("click", () => {
+      const idx = Number(deleteSelect.value);
+      if (Number.isNaN(idx) || !items[idx]) {
+        showNotice(adminNotice, "삭제할 품목을 선택해주세요.", "error");
+        return;
+      }
+      const deleted = items[idx];
+      items = items.filter((_, index) => index !== idx);
+      saveItems(items);
+      renderAdmin();
+      renderResults(searchInput.value);
+      showNotice(adminNotice, `품목이 삭제되었습니다: ${escapeHtml(deleted.name)}`, "ok");
+    });
+
+    renderResults();
+  </script>
+</body>
+</html>
